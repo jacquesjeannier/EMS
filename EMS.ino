@@ -12,7 +12,7 @@ typedef struct
 }
 StrMes ;      // Structure de stockage d'une valeur de mesure
 
-static StrMes  AnaMes[NB_MES_ANA];       // Table des données analogique
+static StrMes  AnaMes[NB_MES_ANA];       // Table des données analogiques
 static StrMes EGTMes;                    // Mesure EGT 
 static StrMes RpmMes;                    // Mesure RPM
 static long Cpt ;                        // Compteur de vie
@@ -81,11 +81,11 @@ void setup() {
   attachInterrupt(0, TicInc, RISING); //attache l'interruption externe n°0 à la fonction "TicInc"
 
   // Initialisation variables 
-  NbTicRpm = 0;             // RAZ variables statiques à l'init
+  NbTicRpm = 0;             // RAZ des variables statiques à l'init
   Cpt = 0;
   Tim4ms = 0;
 
-  interrupts();
+  interrupts();           // Réactivation des interruptions
 
   // Initialiser le bus SPI
   pinMode(PCS, OUTPUT); 
@@ -93,13 +93,13 @@ void setup() {
   SPI.begin ();
 }
 
-// routine d'interruption externe n°0
+// routine d'interruption externe n°0 pour comptage Rpm moteur
 void TicInc ()
 {
   NbTicRpm++ ;
 }
 
-// routine d'interruption du timer 2 : 125 * 4 ms =  500 ms
+// routine d'interruption du timer 2 : 125 * 4 ms =  500 ms pour mesurre Rpm moteur
 #define TIC_WEIGHT 24   // 5 tic par tour => Ratio Rpm/Nb tics par sec = 12  soit 24 pour 500 mS
 
 ISR (TIMER2_OVF_vect)
@@ -108,12 +108,13 @@ ISR (TIMER2_OVF_vect)
   if (Tim4ms++ == 125)
   {
 
-    // Stocker le nb de tics avec filtrage dans la mesure rpm (arondi a 10) puis RAZ du compteur de tic
+    // SI 500 ms écoulé stocker le nb de tics avec filtrage dans la mesure rpm (arondi a 10) puis RAZ du compteur de tic
     
     RpmMes.Val = ( NbTicRpm * TIC_WEIGHT);
     RpmMes.Val = RpmMes.Val/10;
     RpmMes.Val = RpmMes.Val*10;
     NbTicRpm = 0;
+    
     // RAZ compteur de temps
     Tim4ms = 0;
     
@@ -172,7 +173,7 @@ void loop()
   FmtVal[5] = 0;
   Serial.print (FmtVal);
 
-  // lecture entrées analogiques  mise a l'echelle et filtrage et envoi message 
+  // lecture des entrées analogiques,  mise a l'echelle ,  filtrage et envoi du message 
   for (i = 0; i < NB_MES_ANA; i++)
   {
     Val = ((float) analogRead(i)) *  AnaMes[i].A + AnaMes[i].B;
@@ -201,6 +202,5 @@ void loop()
   SendMes ( &RpmMes);
 
   Serial.println ("");
-
 
 }
